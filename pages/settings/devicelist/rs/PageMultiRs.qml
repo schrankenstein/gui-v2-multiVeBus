@@ -22,7 +22,7 @@ DevicePage {
 	settingsModel: VisibleItemModel {
 		ListText {
 			text: CommonWords.state
-			secondaryText: Global.system.systemStateToText(dataItem.value)
+			secondaryText: VenusOS.system_stateToText(dataItem.value)
 			dataItem.uid: root.bindPrefix + "/State"
 		}
 
@@ -214,8 +214,8 @@ DevicePage {
 				// stretch to the left/right edges of the view.
 				topPadding: 0
 				bottomPadding: bottomInset
-				leftPadding: 0
-				rightPadding: 0
+				leftPadding: leftInset
+				rightPadding: rightInset
 				contentItem: QuantityTable {
 					model: root.trackerCount
 					header: QuantityTable.TableHeader {

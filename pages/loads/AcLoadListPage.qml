@@ -19,30 +19,39 @@ Page {
 		id: headerComponent
 
 		ListItem {
+			id: tableListItem
+
 			bottomInset: Theme.geometry_gradientList_spacing
 			topPadding: 0
 			bottomPadding: bottomInset
-			leftPadding: 0
-			contentItem: Item {
+			leftPadding: leftInset
+			rightPadding: rightInset
+
+			contentItem: HorizontalFlickable {
 				readonly property real columnWidth: loadSummary.fixedColumnWidth
 				readonly property real columnSpacing: loadSummary.columnSpacing
 
-				implicitWidth: loadSummary.width
 				implicitHeight: phaseTable.y + phaseTable.height
+
+				// Only stretch the table width to geometry_quantityTable_maximumWidth_small if the
+				// phase table is shown, else this creates unnecessary horizontal scrolling in
+				// portrait mode as only the "power" header is shown.
+				contentWidth: (phaseTable.model?.count ?? 0) === 0 ? tableListItem.availableWidth
+					: Math.max(Theme.geometry_quantityTable_maximumWidth_small, tableListItem.availableWidth)
 
 				QuantityTableSummary {
 					id: loadSummary
 
+					width: parent.width
 					equalWidthColumns: true
 
-					// rightPadding = 32px width of the sub-menu arrow icon in each list delegate, plus
-					// margin, to align with the columns in the delegates.
-					rightPadding: 32 + Theme.geometry_listItem_content_horizontalMargin
+					// Set rightPadding to align with the columns in the delegates.
+					rightPadding: Theme.geometry_icon_size_medium + tableListItem.rightPadding
 					summaryModel: [
 						{ text: "", unit: VenusOS.Units_None },
 						{ text: "", unit: VenusOS.Units_None },
 						{ text: "", unit: VenusOS.Units_None },
-						{ text: CommonWords.total_power, unit: VenusOS.Units_None },
+						{ text: CommonWords.power_watts, unit: VenusOS.Units_None },
 					]
 					bodyHeaderText: CommonWords.total
 					bodyModel: QuantityObjectModel {
@@ -63,6 +72,7 @@ Page {
 					readonly property string voltageKey: acInServiceType === "vebus" || acInServiceType === "acsystem" ? "V" : "Voltage"
 
 					anchors.top: loadSummary.bottom
+					width: parent.width
 					rightPadding: loadSummary.rightPadding
 					equalWidthColumns: true
 					model: root.measurements.phaseCount > 1 ? root.measurements.phases : null
@@ -116,7 +126,7 @@ Page {
 
 			required property Device device
 
-			name: device.name
+			name: device ? device.name : ""
 			power: powerItem.value ?? NaN
 			current: root.measurements.singlePhaseCurrentValid ? root.measurements.current : NaN
 			columnWidth: ListView.view.headerItem?.contentItem?.columnWidth ?? NaN
@@ -131,9 +141,12 @@ Page {
 
 			// Status depends on the service:
 			// - evcharger: /Status
+			// - acload/heatpump: /State and /Auto
 			// - other service types: no status
-			statusText: !statusItem.valid ? ""
-				: device.serviceType === "evcharger" ? Global.evChargers.chargerStatusToText(statusItem.value)
+			statusText: !device ? ""
+				: device.serviceType === "evcharger" ?
+					statusItem.valid ? Global.evChargers.chargerStatusToText(statusItem.value) : ""
+				: switchableOutputInfoLoader.item ? switchableOutputInfoLoader.item.statusText
 				: ""
 
 			onClicked: {
@@ -149,14 +162,54 @@ Page {
 				}
 			}
 
+			Loader {
+				id: switchableOutputInfoLoader
+				active: loadDelegate.device && (loadDelegate.device.serviceType === "acload" || loadDelegate.device.serviceType === "heatpump")
+				sourceComponent: Item {
+					readonly property string statusText: (_stateText.length > 0
+								&& autoItem.valid && autoItem.value === 1)
+							? CommonWords.autoStatus(_stateText)
+							: _stateText
+
+					readonly property string _stateText: output.hasValidState
+							? CommonWords.onOrOff(output.state)
+							: ""
+
+					VeQItemTableModel {
+						id: switchableOutputModel
+						uids: [ loadDelegate.device.serviceUid + "/SwitchableOutput" ]
+						flags: VeQItemTableModel.AddChildren | VeQItemTableModel.AddNonLeaves | VeQItemTableModel.DontAddItem
+						readonly property string firstUid: {
+							for (let i = 0 ; i < switchableOutputModel.rowCount; ++i) {
+								let temp = switchableOutputModel.data(index(i, 0), VeQItemTableModel.UniqueIdRole) ?? ""
+								if (temp.length > 0) {
+									return temp
+								}
+							}
+							return ""
+						}
+					}
+
+					SwitchableOutput {
+						id: output
+						uid: switchableOutputModel.firstUid
+					}
+
+					VeQuickItem {
+						id: autoItem
+						uid: output.uid.length > 0 ? output.uid + "/Auto" : ""
+					}
+				}
+			}
+
 			VeQuickItem {
 				id: statusItem
-				uid: device.serviceType === "evcharger" ? device.serviceUid + "/Status" : ""
+				uid: device && device.serviceType === "evcharger" ? device.serviceUid + "/Status" : ""
 			}
 
 			VeQuickItem {
 				id: powerItem
-				uid: device.serviceUid + "/Ac/Power"
+				uid: device ? device.serviceUid + "/Ac/Power" : ""
 			}
 		}
 	}

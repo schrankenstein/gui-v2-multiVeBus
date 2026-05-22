@@ -26,29 +26,33 @@ Page {
 		id: headerComponent
 
 		ListItem {
+			id: tableListItem
+
 			bottomInset: Theme.geometry_gradientList_spacing
 			topPadding: 0
 			bottomPadding: bottomInset
-			leftPadding: 0
-			contentItem: Item {
+			leftPadding: leftInset
+			rightPadding: rightInset
+
+			contentItem: HorizontalFlickable {
 				readonly property real columnWidth: loadSummary.fixedColumnWidth
 				readonly property real columnSpacing: loadSummary.columnSpacing
 
-				implicitWidth: loadSummary.width
 				implicitHeight: dcsystemTable.y + dcsystemTable.height
+				contentWidth: Math.max(Theme.geometry_quantityTable_maximumWidth_small, tableListItem.availableWidth)
 
 				QuantityTableSummary {
 					id: loadSummary
 
+					width: parent.width
 					equalWidthColumns: true
 
-					// rightPadding = 32px width of the sub-menu arrow icon in each list delegate, plus
-					// margin, to align with the columns in the delegates.
-					rightPadding: 32 + Theme.geometry_listItem_content_horizontalMargin
+					// Set rightPadding to align with the columns in the delegates.
+					rightPadding: Theme.geometry_icon_size_medium + tableListItem.rightPadding
 					summaryModel: [
 						{ text: "", unit: VenusOS.Units_None },
 						{ text: "", unit: VenusOS.Units_None },
-						{ text: CommonWords.total_power, unit: VenusOS.Units_None },
+						{ text: CommonWords.power_watts, unit: VenusOS.Units_None },
 					]
 					bodyHeaderText: CommonWords.total
 					bodyModel: QuantityObjectModel {
@@ -64,6 +68,7 @@ Page {
 					id: dcsystemTable
 
 					anchors.top: loadSummary.bottom
+					width: parent.width
 					rightPadding: loadSummary.rightPadding
 					equalWidthColumns: true
 					model: root.systemModel.count > 1 ? root.systemModel : null
@@ -115,7 +120,7 @@ Page {
 			// Status depends on the service:
 			// - dcdc: /State
 			statusText: !statusItem.valid ? ""
-				: device.serviceType === "dcdc" ? Global.system.systemStateToText(statusItem.value)
+				: device.serviceType === "dcdc" ? VenusOS.system_stateToText(statusItem.value)
 				: ""
 
 			onClicked: root._showSettingsPage(device)

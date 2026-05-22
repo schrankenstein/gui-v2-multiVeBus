@@ -11,13 +11,15 @@ FocusScope {
 
 	readonly property alias pageManager: pageManager
 	readonly property alias navBar: navBar
-	readonly property alias statusBar: statusBar
 
 	readonly property color backgroundColor: !!currentPage ? currentPage.backgroundColor : Theme.color_page_background
 	readonly property bool cardsActive: cardsLoader.viewActive
 	readonly property Page currentPage: cardsActive && cardsLoader.status === Loader.Ready && cardsLoader.item ? cardsLoader.item
 			: (pageStack.currentPage ?? swipeView?.currentItem ?? null)
 	readonly property alias cardsLoader: cardsLoader
+
+	readonly property bool notificationButtonsEnabled: (currentPage?.url?.endsWith("NotificationsPage.qml") ?? false)
+			&& (Global.notifications?.silenceAlarmVisible ?? false)
 
 	property alias navBarAnimatingOut: animateNavBarOut.running
 
@@ -28,9 +30,10 @@ FocusScope {
 	// between pages, or when flicking between the main pages. Note that animations are still
 	// allowed when dragging between the main pages, as it looks odd if animations stop abruptly
 	// when the user drags slowly between pages.
-	property bool allowPageAnimations: Global.animationEnabled
+	readonly property bool allowPageAnimations: Global.animationEnabled
 									   && mainViewVisible
 									   && !pageStack.animating && (!swipeView || !swipeView.flicking)
+									   && !Theme.adjustingGeometry
 
 	// True if any of the view animations are running.
 	readonly property bool animating: pageStack.animating || swipeView?.flicking || swipeView?.moving
@@ -41,6 +44,7 @@ FocusScope {
 	property SwipeView swipeView: swipeViewLoader.item
 
 	property int _loadedPages: 0
+	readonly property alias _pageStack: pageStack
 
 	readonly property bool _readyToInit: Global.dataManagerLoaded && !Global.needPageReload
 			&& swipeViewLoader.readyToLoad
@@ -198,9 +202,10 @@ FocusScope {
 					id: _swipeView
 
 					property bool ready: Global.allPagesLoaded && !moving // hide this view until all pages are loaded and we have scrolled back to the brief page
-					onReadyChanged: if (ready) ready = true // remove binding
+					onReadyChanged: if (ready) Qt.callLater(function() { ready = true }) // remove binding
 
 					anchors.fill: parent
+					animationEnabled: ready && root.allowPageAnimations
 					focus: true
 					contentChildren: swipePageModel.pages
 
@@ -218,15 +223,29 @@ FocusScope {
 				id: swipePageModel
 				view: swipeView
 			}
+
+			// For portrait: show top/bottom gradients when user has scrolled the view.
+			ViewGradient {
+				z: 1
+				visible: swipeView.currentItem?.showTopGradient ?? false
+				rotation: 180
+			}
+			ViewGradient {
+				z: 1
+				visible: swipeView.currentItem?.showBottomGradient ?? false
+				anchors.bottom: parent.bottom
+			}
 		}
 
 		NavBar {
 			id: navBar
 
 			y: root.height + 4  // nudge below the visible area for wasm
+			width: parent.width
 			backgroundColor: root.backgroundColor
 			opacity: 0
 			pages: swipePageModel.pages
+			moreButton: visiblePageCount < pages.length ? moreButtonComponent : null
 
 			// Give the NavBar the initial focus within MainView, when key navigation is enabled.
 			focus: true
@@ -247,6 +266,50 @@ FocusScope {
 
 			// Only move focus to SwipeView if its current page allows key navigation.
 			KeyNavigation.up: (root.swipeView?.currentItem?.focusPolicy ?? 0) & Qt.TabFocus ? swipeViewLoader : statusBar
+
+			Component {
+				id: moreButtonComponent
+
+				NavButton {
+					id: moreButton
+
+					width: navBar.buttonWidth
+					//: Click to show more available items
+					//% "More"
+					text: qsTrId("navbar_more")
+					icon.source: "qrc:/images/icon_more_dots.svg"
+					focus: true
+					onClicked: Global.dialogLayer.open(moreButtonDialogComponent)
+
+					Rectangle {
+						anchors {
+							left: parent.horizontalCenter
+							leftMargin: Theme.geometry_navigationBar_notifications_redDot_margin
+							topMargin: Theme.geometry_navigationBar_notifications_redDot_margin
+						}
+						width: Theme.geometry_navigationBar_notifications_redDot_size
+						height: Theme.geometry_navigationBar_notifications_redDot_size
+						radius: Theme.geometry_navigationBar_notifications_redDot_size / 2
+						color: Theme.color_red
+						visible: (Global.notifications?.unacknowledgedCount ?? 0) > 0
+					}
+
+					Component {
+						id: moreButtonDialogComponent
+
+						NavBarMoreDialog {
+							title: moreButton.text
+							pages: navBar.pages
+							hiddenPageCount: navBar.pages.length - navBar.visiblePageCount + 1
+							currentNavBarIndex: navBar.currentIndex
+							onButtonClicked: (pageIndex) => {
+								navBar.setCurrentIndex(pageIndex)
+								close()
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -389,7 +452,9 @@ FocusScope {
 		// cards do not animate from beneath the status bar. Once the cards have animated in, place
 		// them back below the status bar z-order so that status bar buttons (which have an
 		// expanded mouse area) can be clicked in the areas where they overlap with the cards view.
-		z: animationRunning ? 1 : 0
+		// Only do this in landscape; in portrait, the cards should slide beneath the status bar as
+		// the cards may be vertically scrolled, and it looks odd if it fades over the status bar.
+		z: animationRunning && Theme.screenSize !== Theme.Portrait ? 1 : 0
 
 		KeyNavigation.up: statusBar
 
@@ -407,47 +472,40 @@ FocusScope {
 	StatusBar {
 		id: statusBar
 
-		pageStack: pageStack
-		title: !!root.currentPage ? root.currentPage.title || "" : ""
-		leftButton: {
-			const customButton = !!root.currentPage ? root.currentPage.topLeftButton : VenusOS.StatusBar_LeftButton_None
-			if (customButton === VenusOS.StatusBar_LeftButton_None && pageStack.opened) {
-				return VenusOS.StatusBar_LeftButton_Back
-			}
-			return customButton
-		}
-		rightButton: !!root.currentPage ? root.currentPage.topRightButton : VenusOS.StatusBar_RightButton_None
-		animationEnabled: Global.animationEnabled
-		backgroundColor: root.backgroundColor
+		width: parent.width
 
-		onLeftButtonClicked: {
-			switch (leftButton) {
-			case VenusOS.StatusBar_LeftButton_ControlsInactive:
-				cardsLoader.show(controlCardsComponent)
-				break
-			case VenusOS.StatusBar_LeftButton_ControlsActive:
-				cardsLoader.hide()
-				break;
-			case VenusOS.StatusBar_LeftButton_Back:
-				pageManager.popPage()
-				break
-			default:
-				break
-			}
+		opacity: 0.0
+		pageStack: root._pageStack
+
+		onControlCardsActivated: cardsLoader.show(controlCardsComponent)
+		onAuxCardsActivated: cardsLoader.show(auxCardsComponent)
+		onCardsDeactivated: cardsLoader.hide()
+		onSidePanelToggled: root.currentPage.toggleSidePanel()
+
+		Component.onCompleted: if (!Global.animationEnabled) { statusBar.opacity = 1.0 }
+
+		Rectangle {
+			anchors.fill: parent
+			color: cardsLoader.statusBarBackgroundColor
 		}
 
-		onAuxButtonClicked: {
-			if (root.cardsActive) {
-				cardsLoader.hide()
-			} else {
-				cardsLoader.show(auxCardsComponent)
+		SequentialAnimation {
+			running: !Global.splashScreenVisible && Global.animationEnabled
+
+			PauseAnimation {
+				duration: Theme.animation_statusBar_initialize_delayedStart_duration
+			}
+			OpacityAnimator {
+				target: statusBar
+				from: 0.0
+				to: 1.0
+				duration: Theme.animation_statusBar_initialize_fade_duration
 			}
 		}
 
-		onPopToPage: function(toPage) {
-			pageManager.popPage(toPage)
-		}
-
+		KeyNavigation.down: cardsLoader.enabled ? cardsLoader
+				: pageStack.opened ? pageStack
+				: swipeViewAndNavBarContainer
 		onActiveFocusChanged: {
 			// If the key navigation moves downwards from the StatusBar to the SwipeView, suggest to
 			// the SwipeView that it should focus the top-most item in the page.
@@ -455,10 +513,6 @@ FocusScope {
 				root.swipeView.focusEdgeHint = Qt.TopEdge
 			}
 		}
-
-		KeyNavigation.down: cardsLoader.enabled ? cardsLoader
-				: pageStack.opened ? pageStack
-				: swipeViewAndNavBarContainer
 	}
 
 	GlobalKeyNavigationHighlight {

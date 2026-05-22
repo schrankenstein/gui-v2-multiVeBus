@@ -11,6 +11,7 @@ ControlCard {
 
 	property alias serviceUid: generator.serviceUid
 
+	implicitHeight: controlButton.y + controlButton.height + Theme.geometry_controlCard_contentMargins
 	icon.source: "qrc:/images/generator.svg"
 	title.text: CommonWords.generator
 	status.text: generator.stateText
@@ -25,8 +26,7 @@ ControlCard {
 		anchors {
 			right: parent.right
 			rightMargin: Theme.geometry_controlCard_contentMargins
-			top: parent.status.top
-			topMargin: parent.status.font.pixelSize - fontSize
+			baseline: parent.status.baseline
 		}
 		generator: generator
 	}
@@ -91,13 +91,14 @@ ControlCard {
 		id: controlButton
 		anchors {
 			margins: Theme.geometry_controlCard_button_margins
-			bottom: parent.bottom
+			top: Theme.screenSize === Theme.Portrait ? autostartSwitch.bottom : undefined
+			bottom: Theme.screenSize === Theme.Portrait ? undefined : parent.bottom
 			left: parent.left
 			right: parent.right
 		}
 		height: Theme.geometry_card_button_height
 		radius: Theme.geometry_button_radius
-		font.pixelSize: Theme.font_size_body1
+		font.pixelSize: Theme.font_button_size
 		generatorUid: generator.serviceUid
 	}
 }

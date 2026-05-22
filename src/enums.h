@@ -502,6 +502,7 @@ public:
 
 	enum ModalDialog_DoneOptions {
 		ModalDialog_DoneOptions_NoOptions,
+		ModalDialog_DoneOptions_CancelOnly,
 		ModalDialog_DoneOptions_OkOnly,
 		ModalDialog_DoneOptions_OkAndCancel,
 		ModalDialog_DoneOptions_SetAndCancel
@@ -1036,6 +1037,9 @@ public:
 	};
 	Q_ENUM(ElectricalQuantity_Source)
 
+	Q_INVOKABLE QString statusText_off() const;
+	Q_INVOKABLE QString statusText_unknown() const;
+
 	Q_INVOKABLE QString battery_modeToText(Battery_Mode mode) const;
 	Q_INVOKABLE Battery_Mode battery_modeFromPower(qreal power) const;
 	Q_INVOKABLE QString battery_iconFromMode(Battery_Mode mode) const;
@@ -1051,8 +1055,8 @@ public:
 	Q_INVOKABLE QString digitalInput_typeToText(DigitalInput_Type type) const;
 	Q_INVOKABLE QString digitalInput_stateToText(DigitalInput_State state) const;
 
+	Q_INVOKABLE QString inverter_stateToText(System_State state) const;
 	Q_INVOKABLE QString pvInverter_statusCodeToText(PvInverter_StatusCode statusCode) const;
-
 	Q_INVOKABLE QString solarCharger_stateToText(SolarCharger_State state) const;
 
 	Q_INVOKABLE QString switch_deviceStateToText(Switch_DeviceState value) const;
@@ -1064,6 +1068,8 @@ public:
 
 	Q_INVOKABLE QString microgridModeToText(MicrogridMode mode, MicrogridExternalControl control) const;
 	Q_INVOKABLE QString microgrid_errorToText(MicrogridError error) const;
+
+	Q_INVOKABLE QString system_stateToText(System_State state) const;
 
 	Q_INVOKABLE QString tank_fluidTypeToText(Tank_Type type) const;
 

@@ -169,21 +169,10 @@ Page {
 									id: restoreDimLevelSwitch
 									//% "Restore dim level from memory"
 									text: qsTrId("page_switchable_output_restore_dim_level")
-									checked: startupDimLevel.valid && startupDimLevel.value === -1
+									checked: startupDimLevel.value === -1
 									interactive: _writeable
 									onClicked: {
-										startupDimLevel.setValue(startupDimLevel.value === -1 ? 0 : -1)
-									}
-								}
-
-								ListSwitch {
-									id: setDimLevelManuallySwitch
-									//% "Set startup dim level manually"
-									text: qsTrId("page_switchable_output_set_dim_level_manually")
-									checked: startupDimLevel.valid && startupDimLevel.value !== -1
-									interactive: _writeable
-									onClicked: {
-										startupDimLevel.setValue(-2)
+										startupDimLevel.setValue(checked ? -2 : -1)
 									}
 								}
 
@@ -191,10 +180,11 @@ Page {
 
 									//% "Startup dim level"
 									text: qsTrId("settings_dvcc_startup_dim_level")
-									preferredVisible: setDimLevelManuallySwitch.visible && !setDimLevelManuallySwitch.checked
+									preferredVisible: startupDimLevel.valid && startupDimLevel.value >= 0
 									from: 0
 									to: 100
 									suffix: "%"
+									decimals: 0
 									dataItem.uid: startupDimLevel.uid
 								}
 							}

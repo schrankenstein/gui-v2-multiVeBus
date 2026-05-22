@@ -47,6 +47,7 @@ Window {
 		if (requiresReloadData) {
 			// we haven't lost backend connection.
 			// we must be rebuilding UI due to demo mode change,
+			// gui plugin reload,
 			// or detected crash in localsettings/venus-platform.
 			// manually cycle the data manager loader.
 			console.info("Main: resetting data manager due to change requiring data reload")
@@ -74,6 +75,31 @@ Window {
 		// keyNavigationEnabled=true.
 		if (!Global.dialogLayer?.currentDialog) {
 			Global.keyNavigationEnabled = false
+		}
+	}
+
+	onWidthChanged: {
+		if (!Global.isGxDevice) {
+			if (width < height) {
+				Theme.screenSize = Theme.Portrait
+			} else if (Theme.screenSize === Theme.Portrait) {
+				Theme.screenSize = Qt.platform.os === "wasm" ? Theme.SevenInch : Theme.FiveInch
+			}
+			if (Theme.screenSize === Theme.Portrait) {
+				Theme.geometry_screen_width = root.width * root.scaleFactor
+			}
+		}
+	}
+	onHeightChanged: {
+		if (!Global.isGxDevice) {
+			if (width < height) {
+				Theme.screenSize = Theme.Portrait
+			} else if (Theme.screenSize === Theme.Portrait) {
+				Theme.screenSize = Qt.platform.os === "wasm" ? Theme.SevenInch : Theme.FiveInch
+			}
+			if (Theme.screenSize === Theme.Portrait) {
+				Theme.geometry_screen_height = root.height * root.scaleFactor
+			}
 		}
 	}
 
@@ -293,6 +319,18 @@ Window {
 					systemServiceConnections.toastId = null
 					root.rebuildUi()
 				}
+			}
+		}
+	}
+
+	Connections {
+		target: GuiPluginLoader
+		// When plugins reload, rebuild the entire UI so that plugin
+		// components will be freshly compiled from the new .rcc data.
+		function onBusyChanged() {
+			if (GuiPluginLoader.busy) {
+				console.info("Main: gui plugins unloading, reloading UI")
+				root.rebuildUi()
 			}
 		}
 	}

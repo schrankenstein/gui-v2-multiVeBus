@@ -9,38 +9,44 @@ import Victron.VenusOS
 ListItem {
 	id: root
 
-	property int phaseCount
-	property alias inputPhaseUidPrefix: inputTable.phaseUidPrefix
-	property alias outputPhaseUidPrefix: outputTable.phaseUidPrefix
+	required property int phaseCount
+	required property string inputPhaseUidPrefix
+	required property string outputPhaseUidPrefix
 	property alias totalInputPowerUid: inputTable.totalPowerUid
 	property alias totalOutputPowerUid: outputTable.totalPowerUid
 	property int voltDecimals: Units.defaultUnitDecimals(VenusOS.Units_Volt_AC)
 
-	leftPadding: 0
-	rightPadding: 0
-	topPadding: 0
-	bottomPadding: 0
+	leftPadding: leftInset
+	rightPadding: rightInset
+	topPadding: topInset
+	bottomPadding: bottomInset
 	background: null
 
-	contentItem: Row {
-		id: contentRow
-		width: parent.width
+	contentItem: Flow {
+		readonly property int tableWidth: Theme.screenSize === Theme.Portrait
+				? root.availableWidth
+				: (root.availableWidth - spacing) / 2
+
 		spacing: Theme.geometry_vebusDeviceListPage_quantityTable_row_spacing
 
 		ThreePhaseQuantityTable {
 			id: inputTable
-			width: (parent.width - parent.spacing) / 2
+			width: parent.tableWidth
 			labelText: CommonWords.ac_in
+			labelFontSize: root.font.pixelSize
 			model: root.phaseCount
 			voltDecimals: root.voltDecimals
+			phaseUidPrefix: root.inputPhaseUidPrefix
 		}
 
 		ThreePhaseQuantityTable {
 			id: outputTable
-			width: (parent.width - parent.spacing) / 2
+			width: parent.tableWidth
 			labelText: CommonWords.ac_out
+			labelFontSize: root.font.pixelSize
 			model: root.phaseCount
 			voltDecimals: root.voltDecimals
+			phaseUidPrefix: root.outputPhaseUidPrefix
 		}
 	}
 }

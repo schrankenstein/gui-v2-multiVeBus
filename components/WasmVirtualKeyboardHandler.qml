@@ -123,7 +123,9 @@ Item {
 
 		// Called when a text field is pressed, before it receives focus.
 		function onAboutToFocusTextField(textField, textFieldContainer, viewToScroll) {
-			if (!Theme.windowIsLandscape()) {
+			if (Global.currentDialog) {
+				// If the text field is in a dialog, do not auto-scroll, as this will automatically
+				// be done by the platform.
 				return
 			}
 

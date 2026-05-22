@@ -48,13 +48,14 @@ Page {
 
 		model: mode.value && loads.valid ? opportunityLoadsModel : []
 		delegate: ListDevicePriority {
-			leftInset: Theme.geometry_priorityLabel_width
+			leftInset: Theme.geometry_page_content_horizontalMargin + Theme.geometry_priorityLabel_width
+			leftPadding: leftInset + Theme.geometry_opportunityLoad_margin
 		}
 
 		Column {	// The priority numbers on the LHS should remain stationary, unlike the device delegates
 					// which animate up & down by clicking the up & down arrows.
 			y: -gradientListView.contentY
-			leftPadding: gradientListView.leftMargin
+			leftPadding: Theme.geometry_page_content_horizontalMargin
 			spacing: parent.spacing
 
 			Repeater {
@@ -66,7 +67,7 @@ Page {
 					verticalAlignment: Text.AlignVCenter
 					text: index + 1
 					color: Theme.color_font_disabled
-					font.pixelSize: Theme.font_size_body1
+					font.pixelSize: Theme.font_listItem_caption_size
 				}
 			}
 		}
@@ -91,20 +92,10 @@ Page {
 		footer: SettingsColumn {
 			width: parent?.width ?? 0
 
-			SettingsListHeader {
-				anchors {
-					left: parent.left
-					leftMargin: Theme.geometry_priorityLabel_width
-					right: parent.right
-					rightMargin: Theme.geometry_priorityLabel_width
-				}
-
+			PrimaryListLabel {
 				//% "Arrange the controllable devices according to their priority; the control algorithm will control them based on the currently available PV excess."
 				text: qsTrId("pagecontrollableloads_arrange")
-				font.pixelSize: Theme.font_size_caption
-				width: parent?.width ?? 0
-				wrapMode: Text.Wrap
-				visible: mode.value
+				preferredVisible: mode.value
 			}
 
 			ListNavigation {

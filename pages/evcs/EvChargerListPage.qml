@@ -17,9 +17,9 @@ Page {
 			bottomInset: Theme.geometry_gradientList_spacing
 			topPadding: 0
 			bottomPadding: bottomInset
-			leftPadding: 0
+			leftPadding: leftInset
+			rightPadding: rightInset
 			contentItem: QuantityTableSummary {
-				rightPadding: Theme.geometry_icon_size_medium
 				//% "Session"
 				summaryHeaderText: qsTrId("evcs_charger_list_session")
 				summaryModel: [

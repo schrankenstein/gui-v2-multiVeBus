@@ -38,19 +38,23 @@ Page {
 
 	GradientListView {
 		header: ListItem {
+			id: tableListItem
+
 			bottomInset: Theme.geometry_gradientList_spacing
 			topPadding: 0
 			bottomPadding: bottomInset
-			leftPadding: 0
-			contentItem: Item {
-				implicitWidth: trackerSummary.width
+			leftPadding: leftInset
+			rightPadding: rightInset
+			contentItem: HorizontalFlickable {
 				implicitHeight: trackerTable.y + trackerTable.height
+				contentWidth: Math.max(Theme.geometry_quantityTable_maximumWidth_large, tableListItem.availableWidth)
 
 				// When there is only one tracker, this table shows the overall voltage and current.
 				// Otherwise, the voltage and current are shown per-tracker in the tracker table.
 				QuantityTableSummary {
 					id: trackerSummary
 
+					width: parent.width
 					columnSpacing: Theme.geometry_quantityTable_horizontalSpacing_small
 					summaryHeaderText: CommonWords.state
 					summaryModel: [
@@ -58,15 +62,14 @@ Page {
 						{ text: root.singleTracker ? CommonWords.voltage : "", unit: VenusOS.Units_Volt_DC },
 						{ text: root.singleTracker ? CommonWords.current_amps : "", unit: VenusOS.Units_Amp },
 						{
-							text: root.singleTracker
-								   ? CommonWords.pv_power
-									 //% "Total PV Power"
-								   : qsTrId("charger_total_pv_power"),
+							text: root.singleTracker ? CommonWords.pv_power : CommonWords.total_power,
 							unit: VenusOS.Units_Watt
 						}
 					]
 
-					bodyHeaderText: VenusOS.solarCharger_stateToText(stateItem.value)
+					bodyHeaderText: solarDevice.serviceType === "inverter"
+							? VenusOS.inverter_stateToText(stateItem.value)
+							: VenusOS.solarCharger_stateToText(stateItem.value)
 					bodyModel: QuantityObjectModel {
 						QuantityObject { object: overallYieldToday; unit: VenusOS.Units_Energy_KiloWattHour }
 						QuantityObject { object: root.singleTracker; key: "voltage"; unit: VenusOS.Units_Volt_DC; hidden: !root.singleTracker }
@@ -79,6 +82,7 @@ Page {
 					id: trackerTable
 
 					anchors.top: trackerSummary.bottom
+					width: parent.width
 					rightPadding: trackerSummary.rightPadding
 					columnSpacing: trackerSummary.columnSpacing
 					metricsFontSize: trackerSummary.metricsFontSize

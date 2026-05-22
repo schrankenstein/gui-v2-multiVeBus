@@ -18,13 +18,16 @@ DevicePage {
 	serviceUid: bindPrefix
 
 	settingsHeader: ListItem {
+		id: tableListItem
+
 		bottomInset: Theme.geometry_gradientList_spacing
 		topPadding: 0
 		bottomPadding: bottomInset
-		leftPadding: 0
-		contentItem: Item {
-			implicitWidth: chargerSummary.width
+		leftPadding: leftInset
+		rightPadding: rightInset
+		contentItem: HorizontalFlickable {
 			implicitHeight: phaseTable.y + phaseTable.height
+			contentWidth: Math.max(Theme.geometry_quantityTable_maximumWidth_large, tableListItem.availableWidth)
 
 			QuantityTableSummary {
 				id: chargerSummary
@@ -41,6 +44,7 @@ DevicePage {
 				readonly property string chargingTimeText: root.energyMeterMode ? "--"
 						: Utils.formatAsHHMM(evCharger.chargingTime, true)
 
+				width: parent.width
 				columnSpacing: Theme.geometry_quantityTable_horizontalSpacing_small
 				equalWidthColumns: true
 				//% "Session"
@@ -66,6 +70,7 @@ DevicePage {
 				id: phaseTable
 
 				anchors.top: chargerSummary.bottom
+				width: parent.width
 				columnSpacing: chargerSummary.columnSpacing
 				equalWidthColumns: true
 				model: phaseModel.count > 1 ? phaseModel : null
